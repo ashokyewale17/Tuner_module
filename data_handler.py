@@ -231,7 +231,7 @@ class DataHandler:
         self.gui.switchButtonState(self.gui.button)
         self.gui.switchButtonState(self.gui.button2)
         self.gui.switchButtonState(self.gui.button3)
-        #
+
         if (self.uartState):
             self.gui.dialog.configure(text="Busy", font=('Helvetica', 17, 'bold'))
             value = []
