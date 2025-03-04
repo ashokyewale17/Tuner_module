@@ -1,0 +1,265 @@
+{
+	"project":"BK2ESC_TUNER",
+	"version":"0.0.1",
+	"instructions":
+	[
+		{
+			"id" : "0xFF01",
+			"fields":
+			[
+			{
+				"field1_name": "ESC_ID" ,
+				"field1_value": "-30"
+			},
+			{
+				"field1_name": "Peak current (Arms)" ,
+				"field1_value": "150"
+			},
+			{
+				"field1_name": "Max rpm" ,
+				"field1_value": "650"
+			},
+			{
+				"field1_name": "No. of poles" ,
+				"field1_value": "48"
+			}
+			]
+		},
+
+		{
+			"id" : "0xFF02",
+			"fields":
+			[
+			{
+				"field1_name": "Phase resistance (m ohm)" ,
+				"field1_value": "5"
+			},
+
+			{
+				"field1_name": "D-Inductance (mH)" ,
+				"field1_value": "0.1"
+			},
+			{
+				"field1_name": "Q-inductance (mH)" ,
+				"field1_value": "0.1"
+			},
+			{
+				"field1_name": "Flux (mWb)" ,
+				"field1_value": "0.06"
+			}
+			]
+		},
+
+
+		{
+			"id" : "0xFF04",
+			"fields":
+			[
+			{
+				"field1_name": "Zero angle (degree)" ,
+				"field1_value": "340"
+			},
+			{
+				"field1_name": "Sensor reversal" ,
+				"field1_value": "1"
+			},
+			{
+				"field1_name": "Zero angle estimate" ,
+				"field1_value": "0"
+			},
+			{
+				"field1_name": "Sensor reversal estimate" ,
+				"field1_value": "0"
+			}
+			]
+		},
+		{
+			"id" : "0xFF06",
+			"fields":
+			[
+			{
+				"field1_name": "Rotation direction" ,
+				"field1_value": "0"
+			},
+
+			{
+				"field1_name": "NA" ,
+				"field1_value": "0"
+			},
+			{
+				"field1_name": "kmph/rpm" ,
+				"field1_value": "0.08"
+			},
+			{
+				"field1_name": "rpm fault" ,
+				"field1_value": "800"
+			}
+			]
+		},
+
+		{
+			"id" : "0xFF07",
+			"fields":
+			[
+			{
+				"field1_name": "Motor derate (C)" ,
+				"field1_value": "90"
+			},
+
+			{
+				"field1_name": "Motor T fault (C)" ,
+				"field1_value": "110"
+			},
+			{
+				"field1_name": "ESC derate (C)" ,
+				"field1_value": "90"
+			},
+			{
+				"field1_name": "ESC T fault (C)" ,
+				"field1_value": "120"
+			}
+			]
+		},
+
+		{
+			"id" : "0xFF08",
+			"fields":
+			[
+			{
+				"field1_name": "Battery max Voltage (V)" ,
+				"field1_value": "58"
+			},
+
+			{
+				"field1_name": "Ibat default (A)" ,
+				"field1_value": "42"
+			},
+			{
+				"field1_name": "Over voltage fault (V)" ,
+				"field1_value": "60"
+			},
+			{
+				"field1_name": "Under voltage fault (V)" ,
+				"field1_value": "40"
+			}
+			]
+		},
+
+		{
+			"id" : "0xFF09",
+			"fields":
+			[
+			{
+				"field1_name": "Max battery current (A)" ,
+				"field1_value": "100"
+			},
+
+			{
+				"field1_name": "Max regen current (A)" ,
+				"field1_value": "50"
+			},
+			{
+				"field1_name": "Phase Ifault (Arms)" ,
+				"field1_value": "400"
+			},
+			{
+				"field1_name": "battery Ifault (A)" ,
+				"field1_value": "200"
+			}
+			]
+		},
+		{
+			"id" : "0xFF11",
+			"fields":
+			[
+			{
+				"field1_name": "Driving mode" ,
+				"field1_value": "1"
+			},
+			{
+				"field1_name": "Reverse rpm (%)" ,
+				"field1_value": "5"
+			},
+			{
+				"field1_name": "L mode rpm (%)" ,
+				"field1_value": "40"
+			},
+			{
+				"field1_name": "M mode rpm(%)" ,
+				"field1_value": "70"
+			}
+			]
+		},
+
+		{
+			"id" : "0xFF12",
+			"fields":
+			[
+			{
+				"field1_name": "Throttle Zero (V)" ,
+				"field1_value": "1.0"
+			},
+
+			{
+				"field1_name": "Throttle max (V)" ,
+				"field1_value": "4.0"
+			},
+			{
+				"field1_name": "Brake limit Voltage (V)" ,
+				"field1_value": "54"
+			},
+			{
+				"field1_name": "auto brake (%)" ,
+				"field1_value": "5"
+			}
+			]
+		},
+
+		{
+			"id" : "0xFF13",
+			"fields":
+			[
+			{
+				"field1_name": "rpm kp" ,
+				"field1_value": "0.05"
+			},
+
+			{
+				"field1_name": "rpm ki" ,
+				"field1_value": "0.2"
+			},
+			{
+				"field1_name": "L mode Acceleration (%)" ,
+				"field1_value": "30.0"
+			},
+			{
+				"field1_name": "M mode Acceleration (%)" ,
+				"field1_value": "50.0"
+			}
+			]
+		},
+		{
+			"id" : "0xFF14",
+			"fields":
+			[
+			{
+				"field1_name": "L mode battery current (%)" ,
+				"field1_value": "50"
+			},
+
+			{
+				"field1_name": "M mode battery current (%)" ,
+				"field1_value": "30"
+			},
+			{
+				"field1_name": "L mode phase current (%)" ,
+				"field1_value": "70"
+			},
+			{
+				"field1_name": "M mode phase current (%)" ,
+				"field1_value": "40"
+			}
+			]
+		}
+	]
+}
