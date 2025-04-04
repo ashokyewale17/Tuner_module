@@ -115,11 +115,11 @@ class MainGui:
         serial_box.grid(row=1, column=2, padx=(1, 1), pady=(2, 12), ipadx=10, ipady=4, sticky=tk.N)
 
         self.buttonSS = ctk.CTkButton(frame1, text="START", font=('GoudyOLStBT', 15, 'bold'), fg_color="grey", state="disabled", 
-                                      text_color='white', command=lambda: [on_button_click(self.buttonSS), self.processButtonSS()])
+                                      text_color='white', command=lambda: [on_button_click(self.buttonSS), self.data_handler.processButtonSS()])
         self.buttonSS.grid(row=7, column=1, columnspan=1, padx=3, pady=(10, 1), ipadx=3, ipady=7)
 
         self.buttonStop = ctk.CTkButton(frame1, text="STOP", font=('GoudyOLStBT', 15, 'bold'), fg_color="grey", state="disabled",
-                                        text_color='white', command=lambda: [on_button_click(self.buttonStop), self.stopButtonSS()])
+                                        text_color='white', command=lambda: [on_button_click(self.buttonStop), self.data_handler.stopButtonSS()])
         self.buttonStop.grid(row=7, column=2, columnspan=1, padx=1, pady=(10, 1), ipadx=3, ipady=7)
         
         frame1.pack(side='left', ipadx=1, ipady=7, padx=15, pady=2)
