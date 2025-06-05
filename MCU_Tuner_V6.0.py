@@ -28,7 +28,7 @@ script_dir = sys.path[0]
 
 class MainGui:
     def __init__(self, window):
-        self.root = root
+        self.root = window
         self.script_dir = os.path.dirname(os.path.abspath(__file__))
         data = 'full_config.json'
         filename = self.get_json_file_path(data)
@@ -45,7 +45,8 @@ class MainGui:
         self.le = 0
         self.ser = serial.Serial()
         self.selected_port = tk.StringVar()
-        
+        self.button_zero = None
+
         def resource_path(relative_path):
             """ Get the absolute path to the resource, works for dev and for PyInstaller """
             base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
@@ -65,146 +66,284 @@ class MainGui:
         self.root.mainloop()
 
     def setup_gui(self):
-        # Main window configuration
+        # Main window configuration - Make it responsive
         self.root.title("Tuner Software V6.0")
         self.root.resizable(True, True)
         self.root.configure(fg_color="white")
         
-        # Set window size and position
+        # Set window size and position based on screen resolution
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
-        window_width = int(screen_width * 0.85)
-        window_height = int(screen_height * 0.85)
+        
+        # Responsive window sizing
+        if screen_width >= 3840:  # 4K and above
+            window_width = int(screen_width * 0.7)
+            window_height = int(screen_height * 0.8)
+        elif screen_width >= 1920:  # Full HD
+            window_width = int(screen_width * 0.85)
+            window_height = int(screen_height * 0.85)
+        elif screen_width >= 1366:  # 1366x768 
+            window_width = int(screen_width * 0.95)  
+            window_height = int(screen_height * 0.90)  
+        else:  # 1024x768 and similar
+            window_width = int(screen_width * 0.95)
+            window_height = int(screen_width * 0.9)
+        
+        # Minimum size constraints - adjusted for 1366x768
+        if screen_width >= 1366:
+            window_width = max(1300, window_width)
+            window_height = max(690, window_height)  # Reduced for 1366x768
+        else:
+            window_width = max(1200, window_width)
+            window_height = max(800, window_height)
+
+        
         x = (screen_width - window_width) // 2
         y = (screen_height - window_height) // 2
         self.root.geometry(f"{window_width}x{window_height}+{x}+{y}")
+        # Set minimum size based on screen resolution
+        if screen_width >= 1366:
+            self.root.minsize(1300, 690)
+        else:
+            self.root.minsize(1000, 650)
         
-        # Create main container with modern styling
+        # Configure root grid for responsiveness
+        self.root.grid_rowconfigure(0, weight=1)
+        self.root.grid_columnconfigure(0, weight=1)
+        
+        # Create main container with grid layout
         self.main_container = ctk.CTkFrame(self.root, fg_color="white")
-        self.main_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-
-        #create header
-        header_frame = ctk.CTkFrame(self.main_container, fg_color="white")
-        header_frame.pack(fill=tk.X, padx=5, pady=(0, 10))
+        self.main_container.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
         
-        # Logo
+        # Configure main container grid
+        self.main_container.grid_rowconfigure(0, weight=0)  # Header - fixed
+        self.main_container.grid_rowconfigure(1, weight=0)  # Control panel - fixed
+        self.main_container.grid_rowconfigure(2, weight=1)  # Config area - expandable
+        self.main_container.grid_rowconfigure(3, weight=0)  # Action buttons - fixed
+        self.main_container.grid_columnconfigure(0, weight=1)
+
+        # Create header with responsive design
+        self.create_responsive_header()
+        
+        # Create control panel with responsive design
+        self.create_responsive_control_panel()
+        
+        # Create responsive configuration area
+        self.create_responsive_config_area()
+        
+        # Create responsive action buttons
+        self.create_responsive_action_buttons()
+
+    def create_responsive_header(self):
+        """Create responsive header section"""
+        header_frame = ctk.CTkFrame(self.main_container, fg_color="white")
+        header_frame.grid(row=0, column=0, sticky="ew", padx=5, pady=(0, 10))
+        header_frame.grid_columnconfigure(1, weight=1)  # Make title area expandable
+        
+        # Logo section
+        logo_frame = ctk.CTkFrame(header_frame, fg_color="white")
+        logo_frame.grid(row=0, column=0, sticky="w", padx=10)
+        
         img_path = self.get_json_file_path('APT_LOGO.png')
         try:
             image = Image.open(img_path)
-            width, height = 500, 45 
+            # Responsive logo sizing
+            screen_width = self.root.winfo_screenwidth()
+            if screen_width >= 3840:  # 4K
+                width, height = 600, 55
+            elif screen_width >= 1920:  # Full HD
+                width, height = 500, 45
+            elif screen_width >= 1366:  # 1366x768
+                width, height = 450, 40
+            else:  # Smaller screens
+                width, height = 400, 35
+                
             resized_image = image.resize((width, height), Image.LANCZOS)
             img = ctk.CTkImage(dark_image=resized_image, size=(width, height))
-            logo_label = ctk.CTkLabel(header_frame, image=img, text="")
-            logo_label.pack(side=tk.LEFT, padx=10)
+            logo_label = ctk.CTkLabel(logo_frame, image=img, text="")
+            logo_label.pack()
         except Exception as e:
             print(f"Error loading logo: {e}")
         
-        # Title and version
+        # Title section - expandable
         title_frame = ctk.CTkFrame(header_frame, fg_color="white")
-        title_frame.pack(side=tk.LEFT, expand=True, fill=tk.X)
+        title_frame.grid(row=0, column=1, sticky="ew", padx=15)
         
-        title_label = ctk.CTkLabel(title_frame, text="⚡TUNER SOFTWARE", font=('Helvetica', 14, 'bold'), text_color="#2a5885")
-        title_label.pack(side=tk.TOP, anchor='w', padx=15)
+        # Responsive font sizing
+        screen_width = self.root.winfo_screenwidth()
+        if screen_width >= 3840:
+            title_font_size = 18
+            version_font_size = 16
+        elif screen_width >= 1920:
+            title_font_size = 14
+            version_font_size = 13
+        elif screen_width >= 1366:  # 1366x768 optimization
+            title_font_size = 13
+            version_font_size = 12
+        else:
+            title_font_size = 12
+            version_font_size = 11
         
-        version_label = ctk.CTkLabel(title_frame, text="  Version 6.0", font=('Helvetica', 13, 'bold'),text_color="#666666")
-        version_label.pack(side=tk.TOP, anchor='w', padx=15)
+        title_label = ctk.CTkLabel(title_frame, text="⚡TUNER SOFTWARE", 
+                                 font=('Helvetica', title_font_size, 'bold'), text_color="#2a5885")
+        title_label.pack(anchor='w')
+        
+        version_label = ctk.CTkLabel(title_frame, text="  Version 6.0", 
+                                   font=('Helvetica', version_font_size, 'bold'), text_color="black")
+        version_label.pack(anchor='w')
         
         # Help button
         help_btn = ctk.CTkButton(header_frame, text="?", width=30, height=30,
-                               font=('Helvetica', 14, 'bold'), fg_color="#2a5885", hover_color="#3b7cb1", command=self.show_help)
-        help_btn.pack(side=tk.RIGHT, padx=10)
+                               font=('Helvetica', 14, 'bold'), fg_color="#2a5885", 
+                               hover_color="#3b7cb1", command=self.show_help)
+        help_btn.grid(row=0, column=2, sticky="e", padx=10)
 
-        #Control panel
+    def create_responsive_control_panel(self):
+        """Create responsive control panel"""
         control_frame = ctk.CTkFrame(self.main_container, border_width=1, 
                                    border_color="#dddddd", corner_radius=8, fg_color="#f8f9fa")
-        control_frame.pack(fill=tk.X, padx=5, pady=5, ipady=10)
+        control_frame.grid(row=1, column=0, sticky="ew", padx=5, pady=1)
         
-        # Left section - COM Port controls
-        port_frame = ctk.CTkFrame(control_frame, fg_color="transparent", border_color='black', border_width=2)
-        port_frame.pack(side=tk.LEFT, padx=(15, 2), pady=5, ipadx=20, ipady=8)
+        # Configure control frame grid for responsive sections
+        control_frame.grid_columnconfigure(0, weight=1)  # Serial port
+        control_frame.grid_columnconfigure(1, weight=1)  # PIC ID
+        control_frame.grid_columnconfigure(2, weight=2)  # Status (wider)
+        control_frame.grid_columnconfigure(3, weight=1)  # Firmware
+        control_frame.grid_columnconfigure(4, weight=1)     # Color code
         
-        ctk.CTkLabel(port_frame, text="SERIAL PORT", font=('Helvetica', 14),
-                   text_color="#333333").pack(padx=(10, 1), pady=2, anchor='w')
+        # Serial Port Section
+        self.create_serial_port_section(control_frame, 0)
+        
+        # PIC ID Section
+        self.create_pic_id_section(control_frame, 1)
+        
+        # Status Section
+        self.create_status_section(control_frame, 2)
+        
+        # Firmware Section
+        self.create_firmware_section(control_frame, 3)
+
+        # Color Code Section
+        self.create_color_code_section(control_frame, 4)
+
+    def create_serial_port_section(self, parent, column):
+        """Create responsive serial port section"""
+        port_frame = ctk.CTkFrame(parent, fg_color="transparent", border_color='black', border_width=2, height=115)
+        port_frame.grid(row=0, column=column, sticky="nsew", padx=5, pady=5)
+        port_frame.grid_columnconfigure(0, weight=1)
+        port_frame.grid_propagate(False)
+        
+        # Responsive font size
+        font_size = 14 if self.root.winfo_screenwidth() >= 1920 else (13 if self.root.winfo_screenwidth() >= 1366 else 12)
+        
+        ctk.CTkLabel(port_frame, text="SERIAL PORT", font=('Helvetica', font_size),
+                   text_color="#333333").grid(row=0, column=0, padx=3, pady=5, sticky="w")
         
         # COM port selection
         serial_ports = self.detect_serial_ports()
         self.selected_port = tk.StringVar(value="Select Port")
         
-        port_combo = ctk.CTkComboBox(port_frame, variable=self.selected_port, values=serial_ports, width=190, dropdown_fg_color="#f8f9fa", 
-                                   dropdown_text_color="#333333", button_color="#2a5885", border_color="#cccccc")
-        port_combo.pack(pady=(5, 0))
+        port_combo = ctk.CTkComboBox(port_frame, variable=self.selected_port, values=serial_ports, 
+                                   dropdown_fg_color="#f8f9fa", dropdown_text_color="#333333", 
+                                   button_color="#2a5885", border_color="#cccccc")
+        port_combo.grid(row=1, column=0, pady=5, padx=10, sticky="ew")
         self.selected_port.trace_add("write", self.on_port_selected)
         
         # Connection buttons
-        btn_frame = ctk.CTkFrame(port_frame, fg_color="transparent")
-        btn_frame.pack(pady=(10, 0))
+        btn_frame = ctk.CTkFrame(port_frame, fg_color="white")
+        btn_frame.grid(row=2, column=0, padx=3, pady=3, sticky="ew")
+        btn_frame.grid_columnconfigure(0, weight=1)
+        btn_frame.grid_columnconfigure(1, weight=1)
         
-        self.buttonSS = ctk.CTkButton(btn_frame, text="CONNECT", width=95, font=('Helvetica', 13, 'bold'),
-                                    fg_color="#28a745", hover_color="#218838", state="disabled", command=self.processButtonSS)
-        self.buttonSS.pack(side=tk.LEFT, padx=5)
+        self.buttonSS = ctk.CTkButton(btn_frame, text="CONNECT", font=('Helvetica', 11, 'bold'),
+                                    fg_color="#28a745", hover_color="#218838", state="disabled", width=90,
+                                    height=30, command=self.processButtonSS)
+        self.buttonSS.grid(row=0, column=0, padx=5, sticky="ew")
         
-        self.buttonStop = ctk.CTkButton(btn_frame, text="DISCONNECT", width=85, font=('Helvetica', 13, 'bold'),
-                                      fg_color="#dc3545", hover_color="#c82333", state="disabled", command=self.stopButtonSS)
-        self.buttonStop.pack(side=tk.LEFT)
-        
-        # Middle section - PIC ID
-        pic_frame = ctk.CTkFrame(control_frame, fg_color="transparent", border_color='black', border_width=2)
-        pic_frame.pack(side=tk.LEFT, padx=20, pady=5, ipadx=10, ipady=7)
-        
-        ctk.CTkLabel(pic_frame, text="PIC ID", font=('Helvetica', 15, 'bold'), text_color="#333333").pack(padx=20, pady=2)
-        
-        id_entry_frame = ctk.CTkFrame(pic_frame, fg_color="transparent")
-        id_entry_frame.pack(pady=(5, 0))
-        
-        ctk.CTkLabel(id_entry_frame, text="High", font=('Helvetica', 11, 'bold')).grid(row=0, column=1, padx=(0, 5))
-        self.label2 = ctk.CTkEntry(id_entry_frame, width=100, height=35, border_color="black", font=('Helvetica', 11))
-        self.label2.grid(row=1, column=1, padx=(0, 15))
-        
-        ctk.CTkLabel(id_entry_frame, text="Low", font=('Helvetica', 11, 'bold')).grid(row=0, column=2, padx=(0, 5))
-        self.label3 = ctk.CTkEntry(id_entry_frame, width=100, height=35, border_color="black", font=('Helvetica', 11))
-        self.label3.grid(row=1, column=2)
-        
-        # Right section - Status
-        status_frame = ctk.CTkFrame(control_frame, fg_color="transparent", border_color='black', border_width=2)
-        status_frame.pack(side=tk.LEFT, padx=25, pady=5, ipadx=60, ipady=4)
-        
-        ctk.CTkLabel(status_frame, text="STATUS", font=('Helvetica', 15, 'bold'), text_color="#333333").pack(padx=20, ipadx=60, pady=15)
-        
-        self.dialog = ctk.CTkLabel(status_frame, text="", font=('Helvetica', 11), anchor="center", justify="center", width=200, wraplength=400)
-        self.dialog.pack(pady=(5, 20))
-        
-        # Firmware version section
-        firmware_frame = ctk.CTkFrame(control_frame, fg_color="transparent", border_color='black', border_width=2)
-        firmware_frame.pack(side=tk.LEFT, padx=20, pady=5, ipadx=10, ipady=7)
-        
-        ctk.CTkLabel(firmware_frame, text="FIRMWARE VERSION", font=('Helvetica', 14, 'bold'), text_color="#333333").pack(pady=2)
-        
-        fw_entry_frame = ctk.CTkFrame(firmware_frame, fg_color="transparent")
-        fw_entry_frame.pack(pady=(5, 0))
-        
-        ctk.CTkLabel(fw_entry_frame, text="High", font=('Helvetica', 11, 'bold')).grid(row=0, column=1, padx=(0, 5))
-        self.firmware2 = ctk.CTkEntry(fw_entry_frame, width=100, height=35, border_color="black", font=('Helvetica', 11))
-        self.firmware2.grid(row=2, column=1, padx=(0, 15))
-        
-        ctk.CTkLabel(fw_entry_frame, text="Low", font=('Helvetica', 11, 'bold')).grid(row=0, column=3, padx=(0, 5))
-        self.firmware3 = ctk.CTkEntry(fw_entry_frame, width=100, height=35, border_color="black", font=('Helvetica', 11))
-        self.firmware3.grid(row=2, column=3)
+        self.buttonStop = ctk.CTkButton(btn_frame, text="DISCONNECT", font=('Helvetica', 11, 'bold'),
+                                      fg_color="#dc3545", hover_color="#c82333", state="disabled", width=90,
+                                      height=30, command=self.stopButtonSS)
+        self.buttonStop.grid(row=0, column=1, padx=5, sticky="ew")
 
-        # Color code indicators
-        color_frame = ctk.CTkFrame(control_frame, fg_color="transparent", border_color='black', border_width=2)
-        color_frame.pack(side=tk.RIGHT, padx=10, pady=(30, 1), ipadx=3, ipady=5)
-
-        ctk.CTkLabel(color_frame, text="Color Code", font=('Helvetica', 14, 'bold'), text_color="#333333").pack(pady=2)
+    def create_pic_id_section(self, parent, column):
+        """Create responsive PIC ID section"""
+        pic_frame = ctk.CTkFrame(parent, fg_color="transparent", border_color='black', border_width=2)
+        pic_frame.grid(row=0, column=column, sticky="nsew", padx=10, pady=5)
+        pic_frame.grid_columnconfigure(0, weight=1)
+        pic_frame.grid_columnconfigure(1, weight=1)
         
-        ctk.CTkLabel(color_frame, text="Read", font=('Helvetica', 12, 'bold'), 
-                   fg_color="#90EE90", corner_radius=7, width=50).pack(side=tk.LEFT, padx=4, ipadx=10)
-        ctk.CTkLabel(color_frame, text="Write", font=('Helvetica', 12, 'bold'), 
-                   fg_color="#ADD8E6", corner_radius=7, width=50).pack(side=tk.LEFT, padx=4, ipadx=10)
+        font_size = 15 if self.root.winfo_screenwidth() >= 1920 else (14 if self.root.winfo_screenwidth() >= 1366 else 12)
+        
+        ctk.CTkLabel(pic_frame, text="PIC ID", font=('Helvetica', font_size, 'bold'), 
+                   text_color="#333333").grid(row=0, column=0, columnspan=2, pady=5)
+        
+        ctk.CTkLabel(pic_frame, text="High", font=('Helvetica', 11, 'bold')).grid(row=1, column=0, padx=5)
+        self.label2 = ctk.CTkEntry(pic_frame, height=35, width=100, border_color="black", font=('Helvetica', 11))
+        self.label2.grid(row=2, column=0, padx=5, pady=5, sticky="ew")
+        
+        ctk.CTkLabel(pic_frame, text="Low", font=('Helvetica', 11, 'bold')).grid(row=1, column=1, padx=5)
+        self.label3 = ctk.CTkEntry(pic_frame, height=35, width=100, border_color="black", font=('Helvetica', 11))
+        self.label3.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
 
-    
-        # Create a frame for the configuration area
-        config_frame = ctk.CTkFrame(self.main_container, border_width=2, border_color="#dddddd", corner_radius=8, fg_color="#ffffff")
-        config_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=2)
+    def create_status_section(self, parent, column):
+        """Create responsive status section"""
+        status_frame = ctk.CTkFrame(parent, fg_color="transparent", border_color='black', border_width=2)
+        status_frame.grid(row=0, column=column, sticky="nsew", padx=10, pady=5)
+        status_frame.grid_columnconfigure(0, weight=1)
+        status_frame.grid_rowconfigure(1, weight=1)
+        
+        font_size = 15 if self.root.winfo_screenwidth() >= 1920 else 13
+        
+        ctk.CTkLabel(status_frame, text="STATUS", font=('Helvetica', font_size, 'bold'), 
+                   text_color="#333333").grid(row=0, column=0, pady=10, padx=5, sticky="ew")
+        
+        self.dialog = ctk.CTkLabel(status_frame, text="", font=('Helvetica', 11), 
+                                 anchor="center", justify="center", height=20, width=200, wraplength=300)
+        self.dialog.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
+
+    def create_firmware_section(self, parent, column):
+        """Create responsive firmware section"""
+        firmware_frame = ctk.CTkFrame(parent, fg_color="transparent", border_color='black', border_width=2)
+        firmware_frame.grid(row=0, column=column, sticky="nsew", padx=10, pady=5)
+        firmware_frame.grid_columnconfigure(0, weight=1)
+        firmware_frame.grid_columnconfigure(1, weight=1)
+        
+        font_size = 15 if self.root.winfo_screenwidth() >= 1920 else (14 if self.root.winfo_screenwidth() >= 1366 else 12)
+        
+        ctk.CTkLabel(firmware_frame, text="FIRMWARE VERSION", font=('Helvetica', font_size, 'bold'), 
+                   text_color="#333333").grid(row=0, column=0, columnspan=2, pady=5)
+        
+        ctk.CTkLabel(firmware_frame, text="High", font=('Helvetica', 11, 'bold')).grid(row=1, column=0, padx=5)
+        self.firmware2 = ctk.CTkEntry(firmware_frame, height=35, width=100, border_color="black", font=('Helvetica', 11))
+        self.firmware2.grid(row=2, column=0, padx=5, pady=5, sticky="ew")
+        
+        ctk.CTkLabel(firmware_frame, text="Low", font=('Helvetica', 11, 'bold')).grid(row=1, column=1, padx=5)
+        self.firmware3 = ctk.CTkEntry(firmware_frame, height=35, width=100, border_color="black", font=('Helvetica', 11))
+        self.firmware3.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
+
+    def create_color_code_section(self, parent, column):
+        color_frame = ctk.CTkFrame(parent, fg_color="transparent", border_color='black', border_width=2)
+        color_frame.grid(row=0, column=column, sticky="s", padx=5, pady=5)
+        color_frame.grid_columnconfigure(0, weight=1)
+        color_frame.grid_columnconfigure(1, weight=1)
+
+        font_size = 14 if self.root.winfo_screenwidth() >= 1920 else (14 if self.root.winfo_screenwidth() >= 1366 else 12)
+
+        ctk.CTkLabel(color_frame, text="COLOR CODE", font=('Helvetica', font_size, 'bold'),
+                     text_color="#333333").grid(row=0, columnspan=2, pady=5)
+
+        ctk.CTkLabel(color_frame, text="Read", font=('Helvetica', 11, 'bold'), fg_color="#90EE90", corner_radius=7, width=70).grid(row=1, column=0, padx=4, pady=4)
+        ctk.CTkLabel(color_frame, text="Write", font=('Helvetica', 11, 'bold'), fg_color="#ADD8E6", corner_radius=7, width=70).grid(row=1, column=1, padx=3, pady=4)
+
+    def create_responsive_config_area(self):
+        """Create responsive configuration area with scrolling"""
+        config_frame = ctk.CTkFrame(self.main_container, border_width=2, border_color="#dddddd", 
+                                  corner_radius=8, fg_color="#ffffff")
+        config_frame.grid(row=2, column=0, sticky="nsew", padx=5, pady=2)
+        
+        # Configure config frame grid
+        config_frame.grid_rowconfigure(0, weight=1)
+        config_frame.grid_columnconfigure(0, weight=1)
         
         # Create a canvas and scrollbars
         self.config_canvas = tk.Canvas(config_frame, bg="white", highlightthickness=0)
@@ -217,6 +356,9 @@ class MainGui:
             "<Configure>",
             lambda e: self.config_canvas.configure(scrollregion=self.config_canvas.bbox("all")))
         
+        # Configure scrollable frame for responsive content
+        self.scrollable_frame.grid_columnconfigure(0, weight=1)
+        
         # Configure canvas
         self.config_canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
         self.config_canvas.configure(yscrollcommand=v_scrollbar.set, xscrollcommand=h_scrollbar.set)
@@ -226,51 +368,92 @@ class MainGui:
         v_scrollbar.grid(row=0, column=1, sticky="ns")
         h_scrollbar.grid(row=1, column=0, sticky="ew")
         
-        config_frame.grid_rowconfigure(0, weight=1)
-        config_frame.grid_columnconfigure(0, weight=1)
-        
         # Mouse wheel bindings
         self.config_canvas.bind_all("<MouseWheel>", self._on_mousewheel)
         self.config_canvas.bind_all("<Shift-MouseWheel>", self._on_shift_mousewheel)
         
+        # Bind canvas resize to update scroll region
+        self.config_canvas.bind('<Configure>', self._on_canvas_configure)
+        
         # Load configuration fields
         self.entry_lists1 = self.commonRead(self.scrollable_frame, 'full_config.json', "Full Configuration")
 
-        #create_action_buttons
-        action_frame = ctk.CTkFrame(self.main_container, fg_color="transparent")
-        action_frame.pack(padx=10, pady=(5, 10))
-        
-        # Button styles
-        btn_style = {'font': ('Helvetica', 14, 'bold'), 'width': 160, 'height': 42, 'corner_radius': 6, 'fg_color': "royalblue", 'hover_color': "indigo", 'text_color': "white"}
-        
-        # Create buttons
-        self.button_write = ctk.CTkButton(action_frame, text="Write", command=self.processButtonSend, **btn_style)
-        self.button_write.pack(side=tk.LEFT, padx=10)
-        
-        self.button_read = ctk.CTkButton(action_frame, text="Read", command=self.processButtonReceive, **btn_style)
-        self.button_read.pack(side=tk.LEFT, padx=10)
-        
-        self.button_upload = ctk.CTkButton(action_frame, text="Upload", command=self.open_file, **btn_style)
-        self.button_upload.pack(side=tk.LEFT, padx=10)
-        
-        self.button_print = ctk.CTkButton(action_frame, text="Print", command=self.write_excelbutton, **btn_style)
-        self.button_print.pack(side=tk.LEFT, padx=10)
-        
-        self.button_zero = ctk.CTkButton(action_frame, text="Zero Angle Estimate", command=self.start_continuous, **btn_style)
-        self.button_zero.pack(side=tk.LEFT, padx=10)
-        
-        self.button_screenshot = ctk.CTkButton(action_frame, text="Screenshot", command=self.capture_screenshot, **btn_style)
-        self.button_screenshot.pack(side=tk.LEFT, padx=10)
+        # After all values are set in AlgoToSetValue, update originals to match GUI
+        self.entry_original_values = []
+        for entry_row in self.entry_lists1:
+            originals = []
+            for entry in entry_row:
+                if isinstance(entry, str):
+                    originals.append(entry)
+                else:
+                    originals.append(entry.get())
+                self.entry_original_values.append(originals)
 
+    # reading the file inside the program
+    def get_json_file_path(self, filename):
+        return os.path.join(getattr(sys, '_MEIPASS', script_dir), filename)
+
+    def create_responsive_action_buttons(self):
+        """Create responsive action buttons"""
+        action_frame = ctk.CTkFrame(self.main_container, fg_color="transparent")
+        action_frame.grid(row=3, column=0, sticky="ew", padx=10, pady=(5, 10))
+        
+        # Configure button grid for responsive layout
+        for i in range(6):  # 6 buttons
+            action_frame.grid_columnconfigure(i, weight=1, uniform="button")
+        
+        # Responsive button sizing
+        screen_width = self.root.winfo_screenwidth()
+        if screen_width >= 3840:  # 4K
+            btn_font_size = 16
+            btn_height = 50
+        elif screen_width >= 1920:  # Full HD
+            btn_font_size = 14
+            btn_height = 44
+        elif screen_width >= 1366:  # 1366x768 - compact but readable
+            btn_font_size = 13
+            btn_height = 40
+        else:  # Smaller screens
+            btn_font_size = 12
+            btn_height = 38
+        
+        btn_style = {
+            'font': ('Helvetica', btn_font_size, 'bold'), 'height': btn_height, 'corner_radius': 6, 'fg_color': "royalblue", 'hover_color': "indigo", 'text_color': "white"}
+        
+        # Create buttons with responsive grid layout
+        buttons = [
+            ("Write", self.processButtonSend),
+            ("Read", self.processButtonReceive),
+            ("Upload", self.open_file),
+            ("Export", self.write_excelbutton),
+            ("Zero Angle Estimate", self.start_continuous),
+            ("Screenshot", self.capture_screenshot)
+        ]
+        
+        for i, (text, command) in enumerate(buttons):
+            btn = ctk.CTkButton(action_frame, text=text, command=command, **btn_style)
+            btn.grid(row=0, column=i, padx=5, sticky="ew")
+
+            # Assign the 'Zero Angle Estimate' button to self.button_zero
+            if text == "Zero Angle Estimate":
+                self.button_zero = btn
 
     #star continuous
     def start_continuous(self):
+        if self.button_zero is None: 
+            print("Error: 'Zero Angle Estimate' button not found.")
+            return
+        
         def task():
             self.button_zero.configure(state='disabled', fg_color="#6c757d")
+            self.dialog.configure(text="Zero Angle in progress...", text_color="blue")
             try:
                 self.receiveRandom()  # Assuming this is a blocking call
+            except Exception as e:
+                self.dialog.configure(text=f"Zero Angle Estimate Error: {e}", text_color="red")
             finally:
                 self.button_zero.configure(state='normal', fg_color="#2a5885")
+                self.dialog.configure(text="Zero Angle finished.", text_color="green") 
 
         thread = threading.Thread(target=task)
         thread.start()
@@ -296,61 +479,52 @@ class MainGui:
             screenshot = pyautogui.screenshot(region=(x, y, width, height))
             screenshot.save(file_path)
 
-
-        # Setup button hover animations
-        def animate_button(button, color_from, color_to):
-            current_color = button.cget("fg_color")
-            if current_color == color_from:
-                button.configure(fg_color=color_to)
-            else:
-                button.configure(fg_color=color_from)
-        
-        # Bind animation to buttons
-        buttons = [self.button_write, self.button_read, self.button_upload, 
-                  self.button_print, self.button_zero, self.button_screenshot]
-        
-        for btn in buttons:
-            btn.bind("<Enter>", lambda e, b=btn: animate_button(b, "#2a5885", "#3b7cb1"))
-            btn.bind("<Leave>", lambda e, b=btn: animate_button(b, "#3b7cb1", "#2a5885"))
-
-
     def show_help(self):
         self.help_window = ctk.CTkToplevel(self.root)
         self.help_window.title("Help")
-        self.help_window.geometry("500x400")
+        self.help_window.geometry("500x480")
         self.help_window.resizable(False, False)
         self.help_window.grab_set()
         self.help_window.focus()
         self.help_window.transient(self.root)
     
         help_text = """
-        Tuner Software V3.9 Help
+        🛠️ MCU Tuner V6.0 – Quick Help Guide
     
-        1. COM Port: Select the serial port your device is connected to
-        2. Connect/Disconnect: Establish or terminate connection
-        3. Read: Read current configuration from device
-        4. Write: Send configuration to device
-        5. Upload: Load configuration from file
-        6. Print: Save current configuration to file
-        7. Zero Angle: Perform zero angle estimation
-        8. Screenshot: Capture application window
+        1. COM Port: Select the correct serial port for communication.
+        2. PIC ID: Read the unique ID of the connected MCU.
+        3. Firmware: Displays the current firmware version.
+        4. Status: Shows operation results (e.g., Read Successful, Connection Error).
+        5. Color Code: Visual indicator(Read Successful, Write Successful).
+        
+        🔹  Buttons & Functions
+        
+        > Read : Reads data from the MCU (PIC ID + Firmware).
+
+        > Write : Writes current settings to the MCU.
+
+        > Upload : Loads configuration from an Excel file.
+
+        > Export : Saves current data to an Excel file.
+
+        > Zero Angle Estimate: Calculates and sets zero angle offset.
+
+        > Screenshot: Takes a screenshot of the current window."""
     
-        For more help, visit our documentation.
-        """
+        #For more help, visit our documentation.
+        
 
         text_frame = ctk.CTkFrame(self.help_window, fg_color="white")
         text_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
     
         help_label = ctk.CTkLabel(text_frame, text=help_text,
-                                  font=('Helvetica', 12), justify='left', anchor='w', wraplength=480)
+                                  font=('Helvetica', 13), justify='left', anchor='w', wraplength=480)
         help_label.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
     
-        doc_link = ctk.CTkLabel(text_frame, text="Open Documentation", text_color="blue",
-                                cursor="hand2", font=('Helvetica', 12, 'underline'))
-        doc_link.pack(pady=(0, 10))
-        doc_link.bind("<Button-1>", lambda e: webbrowser.open("https://docs.example.com"))
-
-                
+        #doc_link = ctk.CTkLabel(text_frame, text="Open Documentation", text_color="blue",
+          #                      cursor="hand2", font=('Helvetica', 12, 'underline'))
+        #doc_link.pack(pady=(0, 10))
+        #doc_link.bind("<Button-1>", lambda e: webbrowser.open("https://docs.example.com"))
 
     def detect_serial_ports(self):
         self.ports = serial.tools.list_ports.comports()
@@ -358,11 +532,6 @@ class MainGui:
             return [port.device for port in serial.tools.list_ports.comports()]
         else:
             return ['No ports available']
-
-
-    # reading the file inside the program
-    def get_json_file_path(self, filename):
-        return os.path.join(getattr(sys, '_MEIPASS', script_dir), filename)
 
     # reading the xlsx side to entry list
     def open_file(self):
@@ -408,9 +577,7 @@ class MainGui:
         rs = None
         self.is_running = True
         start_time = time.time()
-        #self.switchButtonState(self.button_write)
-        #self.switchButtonState(self.button_read)
-        #self.switchButtonState(self.button_upload)
+    
         if self.uartState:
             while self.is_running:
                 rs = self.ser.read(20)
@@ -426,14 +593,11 @@ class MainGui:
             else:
                 self.button3['text'] = "Zero Angle Estimate"
 
-        #self.switchButtonState(self.button_write)
-        #self.switchButtonState(self.button_read)
-        #self.switchButtonState(self.button_upload)
 
     # reading the picId
     def readFrame(self):
         if self.uartState:
-                # Read PIC ID
+                
                 self.ser.write(bytes.fromhex('20012F'))
                 bval = self.ser.read(10)
                 
@@ -523,8 +687,7 @@ class MainGui:
         else:
             self.dialog.configure(text="Not in connect", font=('Helvetica', 14, 'bold'), text_color='red')
 
-
-    # for connecting the process button with port
+        # for connecting the process button with port
     def processButtonSS(self):
         if not self.uartState:
             self.ser.port = self.selected_port.get()
@@ -532,7 +695,6 @@ class MainGui:
             self.ser.timeout = 1
             try:
                 self.ser.open()
-                #print(f"Serial port {self.ser.port} opened")
             except:
                 self.dialog.configure(
                     text="Can't open the Port", font=('Helvetica', 17, 'bold'), text_color="red")
@@ -562,8 +724,7 @@ class MainGui:
             self.ser.close()
             self.buttonSS["text"] = "START"
             self.uartState = False
-            print("Serial port closed")
-            self.dialog.configure(text="Port Closed", font=('Helvetica', 17, 'bold'), bg_color='red', text_color='white')
+            self.dialog.configure(text="Port Closed", font=('Helvetica', 17, 'bold'), fg_color='red', text_color='white')
 
             #disabled the STOP button after its click
             self.disable_button(self.buttonStop)
@@ -612,7 +773,6 @@ class MainGui:
         else:  
             self.buttonSS.configure(fg_color="grey", text_color="white")
 
-
     def dump(self):
         start_time = time.time()
         self.ser.write(bytes.fromhex('10011f'))
@@ -638,9 +798,6 @@ class MainGui:
 
     # for receiving the values from the uart
     def processButtonReceive(self):
-        #self.switchButtonState(self.button_write)
-        #self.switchButtonState(self.button_read)
-        #self.switchButtonState(self.button_upload)
         
         if self.uartState:
             if self.flag2 == 0:
@@ -666,16 +823,9 @@ class MainGui:
         else:
             self.dialog.configure(text="  Read-> Not in Connect  ", font=('Helvetica', 17, 'bold'))
 
-        #self.switchButtonState(self.button_write)
-        #self.switchButtonState(self.button_read)
-        #self.switchButtonState(self.button_upload)
-
     # receving the data if the button is pressed
     def processReceived(self):
-        #self.switchButtonState(self.button_write)
-        #self.switchButtonState(self.button_read)
-        #self.switchButtonState(self.button_upload)
-        #
+
         if (self.uartState):
             self.dialog.configure(text="  Busy  ", font=('Helvetica', 17, 'bold'))
             value = []
@@ -692,15 +842,8 @@ class MainGui:
         else:
             self.dialog.configure(text="  Received-> Not In Connect  ")
 
-        #self.switchButtonState(self.button_write)
-        #self.switchButtonState(self.button_read)
-        #self.switchButtonState(self.button_upload)
-
     # sending the data to the uart
     def processButtonSend(self):
-        #self.switchButtonState(self.button_write)
-        #self.switchButtonState(self.button_read)
-        #self.switchButtonState(self.button_upload)
             
         if (self.uartState):
             self.dialog.configure(text="  Busy  ", font=('Helvetica', 17, 'bold'))
@@ -715,10 +858,6 @@ class MainGui:
                 self.flag = 0
         else:
             self.dialog.configure(text="  Sent-> Not in Connect  ",  font=('Helvetica', 17, 'bold'))
-
-        #self.switchButtonState(self.button_write)
-        #self.switchButtonState(self.button_read)
-        #self.switchButtonState(self.button_upload)
 
     def readEntry(self, data):
         # get the values from the entry widgets
@@ -771,19 +910,43 @@ class MainGui:
                 break
         # entries that has been sent
         if self.open == 1:
-            for entry_list in data:
-                for entry in entry_list:
+            for row_idx, entry_row in enumerate(data):
+                for col_idx, entry in enumerate(entry_row):
                     if isinstance(entry, str):
                         continue
                     else:
-                        entry.configure(fg_color="#ADD8E6")
+                        try:
+                            original = self.entry_original_values[row_idx][col_idx]
+                        except IndexError:
+                            original = None
+                        if entry.get() != original:
+                            entry.configure(fg_color="#2fadd6")  # Highlight edited
+                            self.entry_original_values[row_idx][col_idx] = entry.get()
+                        else:
+                            entry.configure(fg_color="#ADD8E6")    # Reset unchanged to white
             self.flag = 1
             self.open = 0
         else:
             self.flag = 0
             self.open = 0
-    
 
+    def _on_canvas_configure(self, event):
+        """Handle canvas resize to update scroll region"""
+        self.config_canvas.configure(scrollregion=self.config_canvas.bbox("all"))
+        
+        # Update the scrollable frame width to match canvas width
+        canvas_width = event.width
+        self.config_canvas.itemconfig(self.config_canvas.find_all()[0], width=canvas_width)
+
+    def _on_mousewheel(self, event):
+        """Handle vertical mouse wheel scrolling"""
+        self.config_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+    def _on_shift_mousewheel(self, event):
+        """Handle horizontal mouse wheel scrolling"""
+        self.config_canvas.xview_scroll(int(-1 * (event.delta / 120)), "units")
+
+    # Updated commonRead method with responsive design
     def commonRead(self, parent_frame, data, title):
         filename = self.get_json_file_path(data)
         with open(filename, 'r') as f:
@@ -792,39 +955,91 @@ class MainGui:
             
             # Create a collapsible frame for this configuration section
             collapsible_frame = CollapsibleFrame(parent_frame, text=title)
-            collapsible_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=1)
+            collapsible_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=0)
             
             entry_lists = []
             
             # Create a grid layout for the fields
             grid_frame = ctk.CTkFrame(collapsible_frame.sub_frame, fg_color="white")
             grid_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=0)
+
+            # Configure grid columns (8 columns total) - Make them responsive
+            screen_width = self.root.winfo_screenwidth()
+            screen_height = self.root.winfo_screenheight()
             
-            # Configure grid columns (8 columns total)
+            if screen_width >= 1366:
+                min_col_size = 110
+            else:
+                min_col_size = 90
+            
+            # Configure grid columns (8 columns total) - Make them responsive
             for i in range(8):
-                grid_frame.grid_columnconfigure(i, weight=1, uniform="col")
+                grid_frame.grid_columnconfigure(i, weight=1, uniform="col", minsize=min_col_size)
+
+            num_rows_to_display = len(value) # Total number of rows you will create
+
+            # Dynamic row sizing parameters based on screen height
+            if screen_height >= 1080: # Full HD and above
+                dynamic_font_size = 13
+                dynamic_ipady = 6
+                dynamic_pady = 2
+                dynamic_row_minsize = 45 
+            elif screen_height >= 1050: 
+                dynamic_font_size = 11
+                dynamic_ipady = 4
+                dynamic_pady = 2
+                dynamic_row_minsize = 40
+            elif screen_height >= 900: 
+                dynamic_font_size = 11
+                dynamic_ipady = 4
+                dynamic_pady = 2
+                dynamic_row_minsize = 45
+            elif screen_height >= 960: 
+                dynamic_font_size = 11
+                dynamic_ipady = 10
+                dynamic_pady = 3
+                dynamic_row_minsize = 60
+            elif screen_height >= 800: 
+                dynamic_font_size = 11
+                dynamic_ipady = 2
+                dynamic_pady = 2
+                dynamic_row_minsize = 30
+            elif screen_height >= 768: # 1366x768 or similar
+                dynamic_font_size = 11
+                dynamic_ipady = 2 # Reduced internal padding
+                dynamic_pady = 1  # Reduced external padding
+                dynamic_row_minsize = 30 # Reduced row minsize
+            elif screen_height >= 720: 
+                dynamic_font_size = 11
+                dynamic_ipady = 1
+                dynamic_pady = 1
+                dynamic_row_minsize = 28
+            else: # Smaller screens (e.g., netbooks, very small resolutions)
+                dynamic_font_size = 11
+                dynamic_ipady = 1 # Even less internal padding
+                dynamic_pady = 0  # No external padding between rows
+                dynamic_row_minsize = 28 # Even smaller row minsize
             
             row = 0
-            for i in range(len(value)):
+            for i in range(num_rows_to_display):
                 val = []
                 ind = value[i]['fields']
                 val.append(value[i]['id'])
                 
-                # Create a label for the parameter group
-                #group_label = ctk.CTkLabel(grid_frame, text=value[i]['id'], font=('Helvetica', 12, 'bold'), text_color="#2a5885")
-                #group_label.grid(row=row, column=0, columnspan=8, sticky='w', pady=(10, 5), padx=5)
-                #row += 1
+                # Make the row expandable
+                grid_frame.grid_rowconfigure(row, weight=1, minsize=dynamic_row_minsize)
                 
                 for j in range(len(ind)):
-                    # Field name label
-                    label = ctk.CTkLabel(grid_frame, text=ind[j]['field1_name'], font=('Helvetica', 13, 'bold'), fg_color='darkslategrey', text_color='white', anchor='w', corner_radius=7)
-                    label.grid(row=row, column=j*2, sticky='nsew', padx=(5, 1), pady=2, ipady=4)
                     
-                    # Entry field
+                    label = ctk.CTkLabel(grid_frame, text=ind[j]['field1_name'], font=('Helvetica', dynamic_font_size, 'bold'), fg_color='darkslategrey',
+                                         text_color='white', anchor='w', corner_radius=7, wraplength=180)
+                    label.grid(row=row, column=j*2, sticky='nsew', padx=(5, 1), pady=dynamic_pady, ipady=dynamic_ipady)
+                    
+                    # Entry field - Make it responsive
                     var = tk.StringVar()
-                    entry = ctk.CTkEntry(grid_frame, textvariable=var, font=('Helvetica', 13, 'bold'), border_color="black", corner_radius=7)
+                    entry = ctk.CTkEntry(grid_frame, textvariable=var, font=('Helvetica', dynamic_font_size, 'bold'), border_color="black", corner_radius=7)
                     entry.custom_name = ind[j]["field1_name"]
-                    entry.grid(row=row, column=j*2+1, sticky='nsew', padx=(1, 5), pady=2, ipady=4)
+                    entry.grid(row=row, column=j*2+1,  sticky='nsew', padx=(1, 5), pady=dynamic_pady, ipady=dynamic_ipady)
                     
                     val.append(entry)
                 
@@ -882,6 +1097,16 @@ class MainGui:
             else:
                 actual = self.AlgoToRead(res)
                 self.AlgoToSetValue(entry_list[le], actual)
+                # After all values are set in AlgoToSetValue, update originals to match GUI
+                self.entry_original_values = []
+                for entry_row in entry_list:
+                    originals = []
+                    for entry in entry_row:
+                        if isinstance(entry, str):
+                            originals.append(entry)
+                        else:
+                            originals.append(entry.get())
+                    self.entry_original_values.append(originals)
                 le += 1
                 self.open = 0
                 self.flag2 = 1
@@ -906,14 +1131,6 @@ class MainGui:
             entry_list[i].delete(0, tk.END)
             entry_list[i].insert(0, formatted_value)
             entry_list[i].configure(fg_color="#90EE90", text_color="black")
-
-
-##    # changing the state of buttons
-##    def switchButtonState(self, button):
-##        if self.button_state == "NORMAL":
-##            button['state'] = tk.DISABLED
-##        else:
-##            button['state'] = tk.NORMAL
 
     def randomVari(self, rs, entry_list):
         actual = self.AlgoToRead(rs)
@@ -988,50 +1205,56 @@ class MainGui:
         self.dialog.configure(text="Values printed", font=('Helvetica', 17, 'bold'), fg_color="#ADD8E6", text_color='black')
 
 
-    def _on_mousewheel(self, event):
-        self.config_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-
-    def _on_shift_mousewheel(self, event):
-        self.config_canvas.xview_scroll(int(-1 * (event.delta / 120)), "units")
-
-    def update_status(self, message, is_error=False):
-        self.status_text.set(message)
-        if is_error:
-            self.dialog.configure(text_color="red")
-        else:
-            self.dialog.configure(text_color="black")
-        
-        # Also update status bar
-        self.status_msg.set(message)
-
+# Updated CollapsibleFrame class
 class CollapsibleFrame(ctk.CTkFrame):
     def __init__(self, parent, text="", *args, **kwargs):
         ctk.CTkFrame.__init__(self, parent, *args, **kwargs)
         self.configure(fg_color="white")
         
+        # Configure the main frame to be expandable
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        
         self.show = tk.BooleanVar(value=True)
+        
+        # Title frame - Fixed height but expandable width
         self.title_frame = ctk.CTkFrame(self, fg_color="#f8f9fa", corner_radius=4)
-        self.title_frame.pack(fill=tk.BOTH, expand=True)
+        self.title_frame.grid(row=0, column=0, sticky='ew', padx=0, pady=0)
+        self.title_frame.grid_columnconfigure(0, weight=1)
+
+        # Responsive font sizing for title_label (already in your code)
+        screen_width = parent.winfo_screenwidth() # Use parent's screen width for consistency
+        if screen_width >= 1920:
+            title_font_size = 13
+        elif screen_width >= 1366:
+            title_font_size = 12
+        else:
+            title_font_size = 11
         
-        self.title_label = ctk.CTkLabel(self.title_frame, text=text, font=('Helvetica', 13, 'bold'), text_color="#2a5885")
-        self.title_label.pack(side=tk.LEFT, padx=10)
+        # Title label - Responsive text sizing
+        self.title_label = ctk.CTkLabel(self.title_frame, text=text, font=('Helvetica', title_font_size, 'bold'), text_color="#2a5885", anchor='w')
+        self.title_label.grid(row=0, column=0, sticky='w', padx=10)
         
-        self.toggle_button = ctk.CTkButton(self.title_frame, width=30, height=30,
-                                         text="-", font=('Helvetica', 15), fg_color="transparent", text_color="black", hover=False, command=self.toggle)
-        self.toggle_button.pack(side=tk.RIGHT)
+        # Toggle button - Fixed size but positioned responsively
+        self.toggle_button = ctk.CTkButton(self.title_frame, width=30, height=30, text="-", font=('Helvetica', 15), fg_color="transparent", text_color="black", hover=False, command=self.toggle)
+        self.toggle_button.grid(row=0, column=1, sticky='e', padx=10)
         
+        # Sub frame - Expandable content area
         self.sub_frame = ctk.CTkFrame(self, fg_color="white")
-        # Ensure sub_frame is packed on startup if show is True
+        self.sub_frame.grid_rowconfigure(0, weight=1)
+        self.sub_frame.grid_columnconfigure(0, weight=1)
+        
+        # Show sub_frame on startup if show is True
         if self.show.get():
-            self.sub_frame.pack(fill=tk.BOTH, expand=True, pady=(5, 10))
+            self.sub_frame.grid(row=1, column=0, sticky='nsew', pady=(5, 10))
         
     def toggle(self):
         if self.show.get():
-            self.sub_frame.pack_forget()
+            self.sub_frame.grid_forget()
             self.toggle_button.configure(text="+")
             self.show.set(False)
         else:
-            self.sub_frame.pack(fill=tk.BOTH, expand=True, pady=(5, 10))
+            self.sub_frame.grid(row=1, column=0, sticky='nsew', pady=(5, 10))
             self.toggle_button.configure(text="-")
             self.show.set(True)
 
@@ -1042,4 +1265,4 @@ if __name__ == "__main__":
     root.state('zoomed')
     app = MainGui(root)
     app.ser.close()
-    root.mainloop()
+    root.mainloop()            
