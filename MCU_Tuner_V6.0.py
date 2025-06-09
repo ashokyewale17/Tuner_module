@@ -184,7 +184,7 @@ class MainGui:
             title_font_size = 12
             version_font_size = 11
         
-        title_label = ctk.CTkLabel(title_frame, text="⚡TUNER APT SOFTWARE", 
+        title_label = ctk.CTkLabel(title_frame, text="⚡TUNER SOFTWARE", 
                                  font=('Helvetica', title_font_size, 'bold'), text_color="#2a5885")
         title_label.pack(anchor='w')
         
